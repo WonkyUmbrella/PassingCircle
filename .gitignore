@@ -15,6 +15,9 @@ services/element/config.json
 services/authentik/blueprints/
 landing/dist/
 
+# Plans (local working notes)
+plans/
+
 # Editor / OS
 .DS_Store
 *.swp
