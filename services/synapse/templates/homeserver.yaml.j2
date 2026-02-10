@@ -1,0 +1,70 @@
+server_name: "{{ domain }}"
+public_baseurl: "https://{{ domain }}/"
+serve_server_wellknown: true
+
+signing_key_path: "{{ signing_key_path }}"
+
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    bind_addresses: ["0.0.0.0"]
+    resources:
+      - names: [client, federation]
+        compress: false
+
+database:
+  name: psycopg2
+  args:
+    user: synapse
+    password: "{{ postgres_synapse_password }}"
+    database: synapse
+    host: synapse-db
+    port: 5432
+    cp_min: 5
+    cp_max: 10
+
+log_config: "/data/log.config"
+
+media_store_path: "/data/media_store"
+max_upload_size: "{{ max_upload_size_mb }}M"
+
+registration_shared_secret: "{{ registration_shared_secret }}"
+enable_registration: false
+
+macaroon_secret_key: "{{ macaroon_secret }}"
+report_stats: false
+
+# Room auto-join
+{% if auto_join_rooms %}
+auto_join_rooms:
+{% for room in auto_join_rooms %}
+  - "{{ room }}"
+{% endfor %}
+autocreate_auto_join_rooms: true
+auto_join_mxid_localpart: "{{ admin_username }}"
+auto_join_rooms_for_guests: false
+{% endif %}
+
+# OIDC (added in Phase 3)
+oidc_providers:
+  - idp_id: authentik
+    idp_name: "Passkey Login"
+    discover: true
+    issuer: "https://{{ auth_domain }}/application/o/passingcircle-matrix/"
+    client_id: "{{ oidc_client_id }}"
+    client_secret: "{{ oidc_client_secret }}"
+    scopes:
+      - "openid"
+      - "profile"
+      - "email"
+    skip_verification: true
+    user_mapping_provider:
+      config:
+        localpart_template: "{% raw %}{{ user.preferred_username }}{% endraw %}"
+        display_name_template: "{% raw %}{{ user.preferred_username }}{% endraw %}"
+
+suppress_key_server_warning: true
+
+trusted_key_servers: []

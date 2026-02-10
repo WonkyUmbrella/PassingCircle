@@ -1,0 +1,7 @@
+FROM python:3.12-alpine
+
+RUN apk add --no-cache openssl && \
+    pip install --no-cache-dir pyyaml jinja2
+
+WORKDIR /project
+ENTRYPOINT ["python3", "/project/scripts/generate.py"]

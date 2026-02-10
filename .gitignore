@@ -1,0 +1,24 @@
+# Persistent data
+data/
+
+# Generated secrets
+.env
+
+# Generated configs (rendered from templates)
+services/nginx/conf.d/
+services/nginx/certs/
+services/nginx/well-known/
+services/synapse/homeserver.yaml
+services/synapse/log.config
+services/synapse/*.signing.key
+services/element/config.json
+services/authentik/blueprints/
+landing/dist/
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

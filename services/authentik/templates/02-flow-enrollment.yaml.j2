@@ -1,0 +1,105 @@
+version: 1
+metadata:
+  name: Passing Circle - Enrollment Flow
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+entries:
+  # Enrollment flow
+  - model: authentik_flows.flow
+    id: flow-enrollment
+    identifiers:
+      slug: passingcircle-enrollment
+    attrs:
+      name: "Passkey Registration"
+      title: "Register"
+      designation: enrollment
+      authentication: none
+
+  # Expression policy: generate random username + placeholder email
+  - model: authentik_policies_expression.expressionpolicy
+    id: policy-generate-username
+    identifiers:
+      name: passingcircle-generate-username
+    attrs:
+      expression: |
+        import random
+        adjectives = ["swift", "bright", "calm", "bold", "keen", "warm", "cool", "fair", "glad", "wise"]
+        animals = ["fox", "owl", "bear", "deer", "hawk", "wolf", "lynx", "hare", "wren", "dove"]
+        adj = random.choice(adjectives)
+        animal = random.choice(animals)
+        num = random.randint(1000, 9999)
+        username = f"{adj}-{animal}-{num}"
+        context["prompt_data"] = context.get("prompt_data", {})
+        context["prompt_data"]["username"] = username
+        context["prompt_data"]["email"] = f"{username}@{{ domain }}"
+        context["prompt_data"]["name"] = username
+        return True
+
+  # User write stage - creates the account
+  - model: authentik_stages_user_write.userwritestage
+    id: stage-user-write
+    identifiers:
+      name: passingcircle-user-write
+    attrs:
+      create_users_as_inactive: false
+      create_users_group: !Find [authentik_core.group, [name, authentik Admins]]
+      user_creation_mode: always_create
+
+  # WebAuthn setup stage - register passkey
+  - model: authentik_stages_authenticator_webauthn.authenticatorwebauthnstage
+    id: stage-webauthn-setup
+    identifiers:
+      name: passingcircle-webauthn-setup
+    attrs:
+      friendly_name: "Register Passkey"
+      resident_key_requirement: required
+      user_verification: preferred
+      authenticator_attachment: null
+
+  # User login stage
+  - model: authentik_stages_user_login.userloginstage
+    id: stage-enrollment-login
+    identifiers:
+      name: passingcircle-enrollment-login
+    attrs:
+      session_duration: "seconds=0"
+      remember_me_offset: "seconds=0"
+
+  # Bind policy to flow (runs before first stage)
+  - model: authentik_policies.policybinding
+    identifiers:
+      policy: !Find [authentik_policies_expression.expressionpolicy, [name, passingcircle-generate-username]]
+      target: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
+      order: 0
+    attrs:
+      negate: false
+      enabled: true
+      timeout: 30
+
+  # Bind stages to flow
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
+      stage: !Find [authentik_stages_user_write.userwritestage, [name, passingcircle-user-write]]
+      order: 10
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: true
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
+      stage: !Find [authentik_stages_authenticator_webauthn.authenticatorwebauthnstage, [name, passingcircle-webauthn-setup]]
+      order: 20
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: false
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
+      stage: !Find [authentik_stages_user_login.userloginstage, [name, passingcircle-enrollment-login]]
+      order: 30
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: false

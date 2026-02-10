@@ -1,0 +1,22 @@
+{
+    "default_server_config": {
+        "m.homeserver": {
+            "base_url": "https://{{ domain }}",
+            "server_name": "{{ domain }}"
+        }
+    },
+    "brand": "{{ event_name }}",
+    "disable_guests": true,
+    "disable_login_language_selector": true,
+    "disable_3pid_login": true,
+    "default_theme": "light",
+    "room_directory": {
+        "servers": ["{{ domain }}"]
+    },
+    "setting_defaults": {
+        "breadcrumbs": true
+    },
+    "sso_redirect_options": {
+        "immediate": true
+    }
+}
