@@ -165,9 +165,11 @@ def render_templates(cfg):
         ("services/element/templates/config.json.j2", "services/element/config.json"),
     ]
     authentik_templates = [
+        ("services/authentik/templates/00-brand.yaml.j2", "services/authentik/blueprints/00-brand.yaml"),
         ("services/authentik/templates/01-flow-auth.yaml.j2", "services/authentik/blueprints/01-flow-auth.yaml"),
         ("services/authentik/templates/02-flow-enrollment.yaml.j2", "services/authentik/blueprints/02-flow-enrollment.yaml"),
         ("services/authentik/templates/03-provider.yaml.j2", "services/authentik/blueprints/03-provider.yaml"),
+        ("services/authentik/templates/04-link-flows.yaml.j2", "services/authentik/blueprints/04-link-flows.yaml"),
     ]
 
     all_templates = templates + synapse_templates + element_templates + authentik_templates

@@ -24,6 +24,7 @@ entries:
       user_fields:
         - username
       passwordless_flow: !Find [authentik_flows.flow, [slug, passingcircle-auth]]
+      enrollment_flow: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
       sources: []
 
   # WebAuthn validation stage (passwordless mode)

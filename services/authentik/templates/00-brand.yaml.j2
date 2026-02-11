@@ -1,0 +1,21 @@
+version: 1
+metadata:
+  name: Passing Circle - Brand Configuration
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+entries:
+  # Configure the default brand to use our custom authentication flow
+  - model: authentik_brands.brand
+    identifiers:
+      domain: authentik-default
+    attrs:
+      default: true
+      branding_title: "{{ event_name }}"
+      branding_logo: ""
+      branding_favicon: ""
+      flow_authentication: !Find [authentik_flows.flow, [slug, passingcircle-auth]]
+      flow_invalidation: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      flow_recovery: !Find [authentik_flows.flow, [slug, default-recovery-flow]]
+      flow_unenrollment: !Find [authentik_flows.flow, [slug, default-unenrollment-flow]]
+      flow_user_settings: !Find [authentik_flows.flow, [slug, default-user-settings-flow]]
+      flow_device_code: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
