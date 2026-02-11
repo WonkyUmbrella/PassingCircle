@@ -9,7 +9,7 @@ entries:
     id: scope-username
     identifiers:
       managed: goauthentik.io/providers/oauth2/scope-openid
-    state: must_created
+    state: present
     attrs:
       name: "OpenID Connect scope (openid)"
       scope_name: openid
@@ -26,11 +26,13 @@ entries:
       name: passingcircle-matrix
     attrs:
       authorization_flow: !Find [authentik_flows.flow, [slug, passingcircle-auth]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
       client_type: confidential
       client_id: "{{ oidc_client_id }}"
       client_secret: "{{ oidc_client_secret }}"
-      redirect_uris: |
-        https://{{ domain }}/_synapse/client/oidc/callback
+      redirect_uris:
+        - url: "https://{{ domain }}/_synapse/client/oidc/callback"
+          matching_mode: strict
       signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]

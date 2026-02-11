@@ -1,0 +1,47 @@
+# config/passingcircle.yml.example
+# Copy this file to passingcircle.yml and customize for your event.
+# Secrets will be auto-generated on first run by ./scripts/setup.sh
+
+event:
+  name: "My Event 2026"
+  tagline: "Connect. Collaborate."
+
+network:
+  domain: "chat.local"
+  auth_domain: "auth.chat.local"
+  host_ip: "192.168.1.100"
+  tls:
+    mode: "self-signed"
+
+# Auto-generated on first run if empty
+secrets:
+  synapse_registration_shared_secret: ""
+  synapse_macaroon_secret: ""
+  authentik_secret_key: ""
+  authentik_bootstrap_token: ""
+  authentik_bootstrap_password: ""
+  oidc_client_id: ""
+  oidc_client_secret: ""
+  postgres_synapse_password: ""
+  postgres_authentik_password: ""
+
+rooms:
+  - id: "general"
+    name: "General"
+    topic: "Open discussion"
+    auto_join: true
+    announce_only: false
+  - id: "announcements"
+    name: "Announcements"
+    topic: "Official announcements"
+    auto_join: true
+    announce_only: true
+
+admins:
+  - username: "eventadmin"
+
+synapse:
+  max_upload_size_mb: 50
+
+landing:
+  primary_color: "#4A90D9"

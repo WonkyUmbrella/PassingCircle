@@ -65,17 +65,6 @@ entries:
       session_duration: "seconds=0"
       remember_me_offset: "seconds=0"
 
-  # Bind policy to flow (runs before first stage)
-  - model: authentik_policies.policybinding
-    identifiers:
-      policy: !Find [authentik_policies_expression.expressionpolicy, [name, passingcircle-generate-username]]
-      target: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
-      order: 0
-    attrs:
-      negate: false
-      enabled: true
-      timeout: 30
-
   # Bind stages to flow
   - model: authentik_flows.flowstagebinding
     identifiers:

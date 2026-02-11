@@ -3,6 +3,7 @@ data/
 
 # Generated secrets
 .env
+config/passingcircle.yml
 
 # Generated configs (rendered from templates)
 services/nginx/conf.d/
@@ -25,3 +26,4 @@ plans/
 *~
 .vscode/
 .idea/
+docker-compose.yml

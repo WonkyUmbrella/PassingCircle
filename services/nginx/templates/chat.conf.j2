@@ -28,7 +28,7 @@ server {
 
     # Element Web
     location /element/ {
-        proxy_pass http://element:80/;
+        proxy_pass http://passingcircle-element:80/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -37,7 +37,7 @@ server {
 
     # Matrix client + federation API
     location /_matrix/ {
-        proxy_pass http://synapse:8008;
+        proxy_pass http://passingcircle-synapse:8008;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -51,7 +51,7 @@ server {
 
     # Synapse OIDC callback + admin
     location /_synapse/ {
-        proxy_pass http://synapse:8008;
+        proxy_pass http://passingcircle-synapse:8008;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

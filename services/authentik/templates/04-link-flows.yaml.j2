@@ -1,0 +1,12 @@
+version: 1
+metadata:
+  name: Passing Circle - Link Flows
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+entries:
+  # Update identification stage to link enrollment flow
+  - model: authentik_stages_identification.identificationstage
+    identifiers:
+      name: passingcircle-identification
+    attrs:
+      enrollment_flow: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
