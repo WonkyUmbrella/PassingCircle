@@ -15,50 +15,60 @@ Passing Circle is a temporary, privacy-focused chat system for events. It provid
 ## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         CLOUDFLARE TUNNEL                            │
-│  (Production: Provides TLS termination and secure tunnel access)    │
-└─────────────────┬───────────────────────────────────────────────────┘
-                  │
-                  │ HTTPS (chat.passingcircle.com)
-                  │ HTTPS (chat-auth.passingcircle.com)
-                  │
-                  ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                            NGINX                                     │
-│  - Reverse Proxy                                                    │
-│  - TLS Termination (self-signed certs for internal)                │
-│  - Routes: / → Landing, /element/ → Element, /_matrix/ → Synapse  │
-│  - Routes: auth domain → Authentik                                 │
-└──────┬──────────────────────┬────────────────────┬─────────────────┘
-       │                      │                    │
-       │ Frontend Network     │                    │
-       └──────────────────────┼────────────────────┘
-                              │
-       ┌──────────────────────┼────────────────────┐
-       │                      │                    │
-       │ Backend Network      │                    │
-       │                      │                    │
-       ▼                      ▼                    ▼
-┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│   ELEMENT   │      │  AUTHENTIK  │      │   SYNAPSE   │
-│   (Web UI)  │      │  (Identity) │      │  (Matrix)   │
-│             │      │             │      │             │
-│  - Matrix   │      │  - OIDC     │◄─────┤  - SSO      │
-│    Client   │      │  - Passkey  │      │  - Chat     │
-│  - Chat UI  │      │  - Flows    │      │  - Rooms    │
-└─────────────┘      └──────┬──────┘      └──────┬──────┘
+                        ┌─────────────────────┐
+                        │   CLOUDFLARE EDGE   │
+                        │  (External Service) │
+                        └──────────┬──────────┘
+                                   │
+                                   │ HTTPS (public internet)
+                                   │ chat.passingcircle.com
+                                   │ chat-auth.passingcircle.com
+                                   │
+                                   ▲
+                                   │
+══════════════════════════════════ │ ═══════════════════════════════════
+LOCAL DOCKER STACK                 │ (outbound tunnel connection)
+                                   │
+                       ┌───────────┴───────────┐
+                       │  CLOUDFLARE TUNNEL    │
+                       │  (Tunnel Client)      │
+                       └───────────┬───────────┘
+                                   │
+                                   │ Frontend Network
+                                   │
+                                   ▼
+       ┌───────────────────────────────────────────────────────────┐
+       │                  NGINX (Reverse Proxy)                    │
+       ├─────────────────────────────┬─────────────────────────────┤
+       │  chat.passingcircle.com     │ chat-auth.passingcircle.com │
+       │                             │                             │
+       │  /         → Landing        │  /  → Authentik             │
+       │  /element/ → Element        │                             │
+       │  /_matrix/ → Synapse        │                             │
+       └──────────────┬──────────────┴──────────────┬──────────────┘
+                      │                             │
+                      │        Backend Network      │ 
+                      │                             │
+                      │                             │
+              ┌───────┴───────┐                     │
+              │               │                     │
+              ▼               ▼                     ▼
+     ┌─────────────┐ ┌─────────────┐       ┌─────────────┐
+     │   ELEMENT   │ │   SYNAPSE   │       │  AUTHENTIK  │
+     │  (Chat UI)  │ │  (Matrix)   │◄──────┤  (Identity) │
+     └─────────────┘ └──────┬──────┘       └──────┬──────┘
                             │                     │
-                            │                     │
-                     ┌──────┴──────┐       ┌──────┴──────┐
-                     │  Postgres   │       │  Postgres   │
-                     │ (Authentik) │       │  (Synapse)  │
-                     └─────────────┘       └─────────────┘
-                            │
-                     ┌──────┴──────┐
-                     │    Redis    │
-                     │ (Authentik) │
-                     └─────────────┘
+                            │              ┌──────┴────────┐
+                            │              │               │
+                     ┌──────▼──────┐       │               │
+                     │  Postgres   │       │               │
+                     │  (Synapse)  │       │               │
+                     └─────────────┘       │               │
+                                    ┌──────▼──────┐  ┌─────▼───────┐
+                                    │  Postgres   │  │    Redis    │
+                                    │ (Authentik) │  │ (Authentik) │
+                                    └─────────────┘  └─────────────┘
+
 ```
 
 ## Component Details
