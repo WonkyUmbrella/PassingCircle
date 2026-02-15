@@ -15,27 +15,107 @@ entries:
       designation: enrollment
       authentication: none
 
-  # Expression policy: generate random username + placeholder email
-  - model: authentik_policies_expression.expressionpolicy
-    id: policy-generate-username
+  # Prompt fields for Stage 1
+  # Field 1: Username (visible, editable, expression-generated)
+  - model: authentik_stages_prompt.prompt
+    id: prompt-username
     identifiers:
-      name: passingcircle-generate-username
+      field_key: username
+      name: passingcircle-prompt-username
     attrs:
-      expression: |
+      label: "Your Username (you can edit this if you want)"
+      type: text
+      required: true
+      placeholder: "Generating your username..."
+      order: 0
+      initial_value: |
         import random
         adjectives = ["swift", "bright", "calm", "bold", "keen", "warm", "cool", "fair", "glad", "wise"]
         animals = ["fox", "owl", "bear", "deer", "hawk", "wolf", "lynx", "hare", "wren", "dove"]
         adj = random.choice(adjectives)
         animal = random.choice(animals)
         num = random.randint(1000, 9999)
-        username = f"{adj}-{animal}-{num}"
-        context["prompt_data"] = context.get("prompt_data", {})
-        context["prompt_data"]["username"] = username
-        context["prompt_data"]["email"] = f"{username}@{{ domain }}"
-        context["prompt_data"]["name"] = username
+        return f"{adj}-{animal}-{num}"
+      initial_value_expression: true
+
+  # Prompt stage 1 - collects username only
+  - model: authentik_stages_prompt.promptstage
+    id: stage-prompt
+    identifiers:
+      name: passingcircle-prompt
+    attrs:
+      fields:
+        - !KeyOf prompt-username
+      validation_policies: []
+
+  # Prompt fields for Stage 2 (populated by expression policy)
+  # Field 2: Email (hidden, reads from policy-injected data)
+  - model: authentik_stages_prompt.prompt
+    id: prompt-email-stage2
+    identifiers:
+      field_key: email
+      name: passingcircle-prompt-email-stage2
+    attrs:
+      label: "Email"
+      type: hidden
+      required: true
+      order: 0
+      initial_value: |
+        # Read from policy-injected prompt_data
+        return request.context.get('prompt_data', {}).get('email', 'user@{{ domain }}')
+      initial_value_expression: true
+
+  # Field 3: Name (hidden, reads from policy-injected data)
+  - model: authentik_stages_prompt.prompt
+    id: prompt-name-stage2
+    identifiers:
+      field_key: name
+      name: passingcircle-prompt-name-stage2
+    attrs:
+      label: "Name"
+      type: hidden
+      required: true
+      order: 1
+      initial_value: |
+        # Read from policy-injected prompt_data
+        return request.context.get('prompt_data', {}).get('name', 'User')
+      initial_value_expression: true
+
+  # Prompt stage 2 - hidden email and name fields
+  - model: authentik_stages_prompt.promptstage
+    id: stage-prompt-2
+    identifiers:
+      name: passingcircle-prompt-2
+    attrs:
+      fields:
+        - !KeyOf prompt-email-stage2
+        - !KeyOf prompt-name-stage2
+      validation_policies: []
+
+  # Expression policy to derive email and name from submitted username
+  - model: authentik_policies_expression.expressionpolicy
+    id: policy-derive-attributes
+    identifiers:
+      name: passingcircle-derive-user-attributes
+    attrs:
+      execution_logging: false
+      expression: |
+        # Read username from Stage 1 submission
+        username = request.context.get('prompt_data', {}).get('username', 'user')
+
+        # Derive email and name
+        email = f"{username}@{{ domain }}"
+        name = username
+
+        # Inject into prompt_data for Stage 2
+        if 'prompt_data' not in request.context:
+            request.context['prompt_data'] = {}
+        request.context['prompt_data']['email'] = email
+        request.context['prompt_data']['name'] = name
+
         return True
 
-  # User write stage - creates the account
+  # User write stage - creates the account from prompt_data
   - model: authentik_stages_user_write.userwritestage
     id: stage-user-write
     identifiers:
@@ -65,30 +145,62 @@ entries:
       session_duration: "seconds=0"
       remember_me_offset: "seconds=0"
 
-  # Bind stages to flow
+  # Bind stages to flow (in correct order)
+  # Order 10: Prompt stage 1 - username input
   - model: authentik_flows.flowstagebinding
+    id: binding-prompt-1
     identifiers:
       target: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
-      stage: !Find [authentik_stages_user_write.userwritestage, [name, passingcircle-user-write]]
+      stage: !Find [authentik_stages_prompt.promptstage, [name, passingcircle-prompt]]
       order: 10
-    attrs:
-      evaluate_on_plan: true
-      re_evaluate_policies: true
-
-  - model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
-      stage: !Find [authentik_stages_authenticator_webauthn.authenticatorwebauthnstage, [name, passingcircle-webauthn-setup]]
-      order: 20
     attrs:
       evaluate_on_plan: true
       re_evaluate_policies: false
 
+  # Order 20: Prompt stage 2 - hidden email/name fields
+  - model: authentik_flows.flowstagebinding
+    id: binding-prompt-2
+    identifiers:
+      target: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
+      stage: !Find [authentik_stages_prompt.promptstage, [name, passingcircle-prompt-2]]
+      order: 20
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: true
+
+  # Bind derivation policy to Stage 2
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf binding-prompt-2
+      policy: !KeyOf policy-derive-attributes
+      order: 0
+
+  # Order 30: User Write stage - creates user from prompt_data
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
+      stage: !Find [authentik_stages_user_write.userwritestage, [name, passingcircle-user-write]]
+      order: 30
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: false
+
+  # Order 40: WebAuthn setup - register passkey
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
+      stage: !Find [authentik_stages_authenticator_webauthn.authenticatorwebauthnstage, [name, passingcircle-webauthn-setup]]
+      order: 40
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: false
+
+  # Order 50: Login - automatically log in the new user
   - model: authentik_flows.flowstagebinding
     identifiers:
       target: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
       stage: !Find [authentik_stages_user_login.userloginstage, [name, passingcircle-enrollment-login]]
-      order: 30
+      order: 50
     attrs:
       evaluate_on_plan: true
       re_evaluate_policies: false

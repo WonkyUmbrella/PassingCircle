@@ -130,6 +130,259 @@ With VS Code + YAML extension, this provides:
 3. Validate blueprint with CLI: `ak apply_blueprint`
 4. Check for circular dependencies between blueprints
 
+### 3. Orphaned Objects After Blueprint Changes (CRITICAL)
+
+**Symptom:**
+- Blueprint updated and re-applied successfully
+- Old behavior still occurs despite removing configuration from blueprint
+- Logs show old policies/stages executing that are no longer in blueprint
+- Multiple systems running simultaneously causing conflicts
+
+**Example:** Updated enrollment flow to use Prompt Stages, but old Expression Policy still generates usernames, causing duplicate values and IntegrityErrors.
+
+**Root Cause:**
+
+**Authentik blueprints DO NOT delete objects when you remove them from the blueprint file.** Blueprint application only creates or updates objects - it never deletes them.
+
+When you refactor a blueprint by:
+- Removing a policy
+- Removing a stage
+- Removing a binding
+- Changing implementation approach
+
+...the OLD objects remain in the database and continue to execute.
+
+**Detection:**
+
+Check logs for unexpected policies or stages executing:
+```bash
+docker compose logs passingcircle-authentik-server --tail 200 | grep -E "P_ENG.*Running policy|Stage.*stage"
+```
+
+Look for policies/stages that are no longer defined in your blueprint.
+
+**Example Detection:**
+```json
+{"event": "P_ENG(proc): Running policy",
+ "policy": "<ExpressionPolicy: passingcircle-generate-username>"}
+```
+
+If `passingcircle-generate-username` is not in your blueprint but appears in logs, it's orphaned.
+
+**Verification in Database:**
+
+Check if policy exists:
+```bash
+docker compose exec passingcircle-authentik-db psql -U authentik -d authentik -c "
+SELECT p.name, p.policy_uuid
+FROM authentik_policies_policy p
+WHERE p.name = 'your-policy-name';
+"
+```
+
+Check if policy is bound:
+```bash
+docker compose exec passingcircle-authentik-db psql -U authentik -d authentik -c "
+SELECT pb.order, pb.policy_id, pb.target_id
+FROM authentik_policies_policybinding pb
+WHERE pb.policy_id = 'policy-uuid-from-above';
+"
+```
+
+**Solution:**
+
+**Option 1: Use Authentik API (Recommended)**
+
+```bash
+# Get bootstrap token from config
+TOKEN=$(grep authentik_bootstrap_token config/passingcircle.yml | awk '{print $2}')
+
+# Delete policy via API (handles cascades automatically)
+curl -k -X DELETE \
+  -H "Authorization: Bearer $TOKEN" \
+  "https://auth.chat.local/api/v3/policies/expression/{policy-uuid}/"
+
+# Restart Authentik to clear caches
+docker compose restart passingcircle-authentik-server passingcircle-authentik-worker
+```
+
+**Option 2: Direct Database (Use with Caution)**
+
+Only use if API is unavailable. Must delete in correct order due to foreign keys:
+
+```bash
+# 1. Delete policy bindings first
+docker compose exec passingcircle-authentik-db psql -U authentik -d authentik -c "
+DELETE FROM authentik_policies_policybinding
+WHERE policy_id = 'policy-uuid';
+"
+
+# 2. Delete from specific policy type table
+docker compose exec passingcircle-authentik-db psql -U authentik -d authentik -c "
+DELETE FROM authentik_policies_expression_expressionpolicy
+WHERE policy_ptr_id = 'policy-uuid';
+"
+
+# 3. Delete from base policy table
+docker compose exec passingcircle-authentik-db psql -U authentik -d authentik -c "
+DELETE FROM authentik_policies_policy
+WHERE policy_uuid = 'policy-uuid';
+"
+
+# 4. Restart Authentik to clear caches
+docker compose restart passingcircle-authentik-server passingcircle-authentik-worker
+```
+
+**Prevention:**
+
+When refactoring blueprints:
+1. Identify objects being removed (policies, stages, bindings)
+2. Document their UUIDs from the database
+3. Apply new blueprint
+4. Manually delete old objects
+5. Restart Authentik services
+6. Verify old behavior is gone
+
+**Alternative: Use Authentik Admin UI**
+
+Navigate to the specific object (Policy, Stage, etc.) in the admin UI and delete it manually. This handles foreign key cascades automatically.
+
+---
+
+### 4. Duplicate Stage Bindings After Flow Refactoring
+
+**Symptom:**
+- Flow stages execute in wrong order
+- Same stage appears multiple times in flow execution
+- Multiple stages bound to same order number
+
+**Example Issue:**
+After refactoring enrollment flow from 4 stages to 5 stages with different orders, the old bindings remained, resulting in 8 total bindings instead of 5.
+
+**Detection:**
+
+Check current stage bindings for a flow via SQL:
+
+```bash
+docker compose exec passingcircle-authentik-db psql -U authentik -d authentik -c "
+SELECT
+  fsb.order,
+  s.name as stage_name,
+  fsb.fsb_uuid as binding_id,
+  fsb.re_evaluate_policies
+FROM authentik_flows_flowstagebinding fsb
+JOIN authentik_flows_stage s ON fsb.stage_id = s.stage_uuid
+JOIN authentik_flows_flow f ON fsb.target_id = f.flow_uuid
+WHERE f.slug = 'passingcircle-enrollment'
+ORDER BY fsb.order, s.name;
+"
+```
+
+**Expected Output (for enrollment flow):**
+```
+ order |           stage_name           | re_evaluate_policies
+-------+--------------------------------+----------------------
+    10 | passingcircle-prompt           | f
+    20 | passingcircle-prompt-2         | t
+    30 | passingcircle-user-write       | f
+    40 | passingcircle-webauthn-setup   | f
+    50 | passingcircle-enrollment-login | f
+(5 rows)
+```
+
+**Problem Output (duplicate bindings):**
+```
+ order |           stage_name
+-------+--------------------------------
+    10 | passingcircle-prompt
+    20 | passingcircle-prompt-2
+    20 | passingcircle-user-write       ← DUPLICATE at order 20
+    30 | passingcircle-user-write
+    30 | passingcircle-webauthn-setup   ← DUPLICATE at order 30
+    40 | passingcircle-enrollment-login ← DUPLICATE at order 40
+    40 | passingcircle-webauthn-setup
+    50 | passingcircle-enrollment-login
+(8 rows)
+```
+
+**Solution:**
+
+Delete the orphaned bindings by their UUID:
+
+```bash
+# 1. Identify the UUIDs of duplicate bindings (the ones at wrong orders)
+docker compose exec passingcircle-authentik-db psql -U authentik -d authentik -c "
+SELECT
+  fsb.order,
+  s.name as stage_name,
+  fsb.fsb_uuid as binding_id
+FROM authentik_flows_flowstagebinding fsb
+JOIN authentik_flows_stage s ON fsb.stage_id = s.stage_uuid
+JOIN authentik_flows_flow f ON fsb.target_id = f.flow_uuid
+WHERE f.slug = 'passingcircle-enrollment'
+ORDER BY fsb.order, s.name;
+"
+
+# 2. Delete specific duplicate bindings
+# Replace UUIDs with the actual binding_ids from step 1
+docker compose exec passingcircle-authentik-db psql -U authentik -d authentik -c "
+DELETE FROM authentik_flows_flowstagebinding
+WHERE fsb_uuid IN (
+  'uuid-of-duplicate-1',
+  'uuid-of-duplicate-2',
+  'uuid-of-duplicate-3'
+);
+"
+
+# 3. Verify cleanup
+docker compose exec passingcircle-authentik-db psql -U authentik -d authentik -c "
+SELECT
+  fsb.order,
+  s.name as stage_name
+FROM authentik_flows_flowstagebinding fsb
+JOIN authentik_flows_stage s ON fsb.stage_id = s.stage_uuid
+JOIN authentik_flows_flow f ON fsb.target_id = f.flow_uuid
+WHERE f.slug = 'passingcircle-enrollment'
+ORDER BY fsb.order;
+"
+
+# 4. Restart Authentik to clear flow cache
+docker compose restart passingcircle-authentik-server passingcircle-authentik-worker
+```
+
+**Verified Working Example:**
+
+During enrollment flow refactoring (February 2026), we had 8 bindings instead of 5. The following cleanup worked:
+
+```bash
+# Identified duplicates at wrong orders:
+# - user-write at order 20 (should be 30): cc4c39a7-d5e7-4925-a752-887eb663b56c
+# - webauthn at order 30 (should be 40): c63c4d65-cc04-4c51-a080-8d7b76e2766c
+# - login at order 40 (should be 50): 034e3f3a-331e-4b78-a829-1b15d87a0997
+
+# Deleted them:
+docker compose exec passingcircle-authentik-db psql -U authentik -d authentik -c "
+DELETE FROM authentik_flows_flowstagebinding
+WHERE fsb_uuid IN (
+  'cc4c39a7-d5e7-4925-a752-887eb663b56c',
+  'c63c4d65-cc04-4c51-a080-8d7b76e2766c',
+  '034e3f3a-331e-4b78-a829-1b15d87a0997'
+);
+"
+# Result: DELETE 3
+
+# Verification showed exactly 5 bindings at correct orders ✅
+```
+
+**Prevention:**
+
+When changing stage order numbers in blueprints:
+1. Document current binding state before blueprint changes
+2. Apply new blueprint
+3. Immediately verify bindings via SQL
+4. Delete orphaned bindings if detected
+5. Restart services to clear caches
+
 ---
 
 ## Blueprint Validation Error: Identification Stage

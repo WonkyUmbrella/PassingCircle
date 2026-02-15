@@ -11,8 +11,6 @@ entries:
     attrs:
       default: true
       branding_title: "{{ event_name }}"
-      branding_logo: ""
-      branding_favicon: ""
       flow_authentication: !Find [authentik_flows.flow, [slug, passingcircle-auth]]
       flow_invalidation: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
       flow_recovery: !Find [authentik_flows.flow, [slug, default-recovery-flow]]

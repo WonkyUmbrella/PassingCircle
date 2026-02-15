@@ -19,8 +19,8 @@ services:
       frontend: {}
       backend:
         aliases:
-          - auth.chat.local
-          - chat.local
+          - chat-auth.passingcircle.com
+          - chat.passingcircle.com
 
   passingcircle-synapse:
     container_name: passingcircle-synapse
@@ -29,9 +29,9 @@ services:
     volumes:
       - ./services/synapse/homeserver.yaml:/data/homeserver.yaml:ro
       - ./services/synapse/log.config:/data/log.config:ro
-      - ./services/synapse/${DOMAIN}.signing.key:/data/${DOMAIN}.signing.key:ro
+      - ./services/synapse/${DOMAIN}.signing.key:/data/${DOMAIN}.signing.key
       - ./data/synapse-media:/data/media_store
-      - ./services/nginx/certs/chat.local.crt:/usr/local/share/ca-certificates/chat.local.crt:ro
+      - ./services/nginx/certs/${DOMAIN}.crt:/usr/local/share/ca-certificates/${DOMAIN}.crt:ro
       - ./services/synapse/docker-entrypoint.sh:/docker-entrypoint.sh:ro
     depends_on:
       passingcircle-synapse-db:

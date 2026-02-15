@@ -3,6 +3,7 @@ data/
 
 # Generated secrets
 .env
+.env.cloudflare
 config/passingcircle.yml
 
 # Generated configs (rendered from templates)
@@ -27,3 +28,4 @@ plans/
 .vscode/
 .idea/
 docker-compose.yml
+docker-compose.dev.yml

@@ -25,7 +25,7 @@ entries:
     identifiers:
       name: passingcircle-matrix
     attrs:
-      authorization_flow: !Find [authentik_flows.flow, [slug, passingcircle-auth]]
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
       invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
       client_type: confidential
       client_id: "{{ oidc_client_id }}"
