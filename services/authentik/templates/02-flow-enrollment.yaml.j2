@@ -122,7 +122,6 @@ entries:
       name: passingcircle-user-write
     attrs:
       create_users_as_inactive: false
-      create_users_group: !Find [authentik_core.group, [name, authentik Admins]]
       user_creation_mode: always_create
 
   # WebAuthn setup stage - register passkey

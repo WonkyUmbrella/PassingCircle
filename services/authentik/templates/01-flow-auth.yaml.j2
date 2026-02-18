@@ -15,7 +15,19 @@ entries:
       designation: authentication
       authentication: none
 
+  # Passwordless authentication flow - skips identification, uses resident key to identify user
+  - model: authentik_flows.flow
+    id: flow-auth-passwordless
+    identifiers:
+      slug: passingcircle-auth-passwordless
+    attrs:
+      name: "Passkey Authentication (Passwordless)"
+      title: "Sign In with Passkey"
+      designation: authentication
+      authentication: none
+
   # Identification stage - username required for passkey lookup
+  # passwordless_flow redirects "Use Security Key" to the dedicated passwordless flow
   - model: authentik_stages_identification.identificationstage
     id: stage-identification
     identifiers:
@@ -24,6 +36,7 @@ entries:
       user_fields:
         - username
       enrollment_flow: !Find [authentik_flows.flow, [slug, passingcircle-enrollment]]
+      passwordless_flow: !Find [authentik_flows.flow, [slug, passingcircle-auth-passwordless]]
       sources: []
 
   # WebAuthn validation stage (passwordless mode)
@@ -70,6 +83,25 @@ entries:
       target: !Find [authentik_flows.flow, [slug, passingcircle-auth]]
       stage: !Find [authentik_stages_user_login.userloginstage, [name, passingcircle-login]]
       order: 30
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: false
+
+  # Bind stages to passwordless flow (no identification stage - resident key identifies user)
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !Find [authentik_flows.flow, [slug, passingcircle-auth-passwordless]]
+      stage: !Find [authentik_stages_authenticator_validate.authenticatorvalidatestage, [name, passingcircle-webauthn-validate]]
+      order: 10
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: false
+
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !Find [authentik_flows.flow, [slug, passingcircle-auth-passwordless]]
+      stage: !Find [authentik_stages_user_login.userloginstage, [name, passingcircle-login]]
+      order: 20
     attrs:
       evaluate_on_plan: true
       re_evaluate_policies: false

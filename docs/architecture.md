@@ -157,22 +157,18 @@ User logged into Element
 #### Authentication Flow (`passingcircle-auth`)
 ```
 ┌─────────────────────────────────────────────┐
-│  1. Identification Stage                    │
-│     - User enters username                  │
-│     - Or selects from passkey picker       │
+│  1. Passkey Authentication                  │
+│     - User clicks "Login with Passkey"      │
+│     - Browser prompts for passkey selection │
+│     - Validates passkey credential          │
+│     - Verifies user identity via biometric  │
 └──────────────────┬──────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────┐
-│  2. WebAuthn Authentication Stage           │
-│     - User authenticates with passkey       │
-│     - Browser prompts for biometric/PIN     │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│  3. User Login Stage                        │
-│     - Creates Authentik session             │
+│  2. Create SSO Session                      │
+│     - Establishes Authentik SSO session     │
+│     - Generates OIDC authorization token    │
 │     - Redirects back to application         │
 └─────────────────────────────────────────────┘
 ```
@@ -180,52 +176,44 @@ User logged into Element
 #### Enrollment Flow (`passingcircle-enrollment`)
 ```
 ┌─────────────────────────────────────────────┐
-│  Stage 1: Username Prompt                   │
-│  - Auto-generates username (e.g.,           │
-│    "swift-fox-1234")                        │
-│  - User can edit/customize                  │
-│  - Submits username                         │
+│  1. Collect Username                        │
+│     - Auto-generates username (e.g.,        │
+│       "swift-fox-1234")                     │
+│     - User can edit/customize               │
+│     - Submits chosen username               │
 └──────────────────┬──────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────┐
-│  Expression Policy (Between Stages)         │
-│  - Reads submitted username from prompt_data│
-│  - Derives email: "{username}@chat.p...com" │
-│  - Derives name: same as username           │
-│  - Injects into prompt_data for Stage 2    │
+│  2. Derive User Attributes                  │
+│     - Reads submitted username              │
+│     - Generates email: {username}@domain    │
+│     - Sets display name to username         │
+│     - Prepares data for account creation    │
 └──────────────────┬──────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────┐
-│  Stage 2: Hidden Email/Name Fields          │
-│  - Reads email/name from prompt_data        │
-│  - Hidden fields (auto-populated)           │
-│  - No user interaction required             │
+│  3. Create User Account                     │
+│     - Creates new user in Authentik         │
+│     - Sets username, email, display name    │
 └──────────────────┬──────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────┐
-│  User Write Stage                           │
-│  - Creates Authentik user                   │
-│  - Username, email, name from prompt_data   │
-│  - Adds to "authentik Admins" group         │
+│  4. Register Passkey                        │
+│     - Prompts for passkey enrollment        │
+│     - User provides biometric/security key  │
+│     - Stores passkey credential             │
 └──────────────────┬──────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────┐
-│  WebAuthn Setup Stage                       │
-│  - Register passkey                         │
-│  - Browser prompts for biometric/security   │
-│    key enrollment                           │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│  User Login Stage                           │
-│  - Automatically logs in new user           │
-│  - Creates session                          │
-│  - Redirects to application                 │
+│  5. Establish SSO Session                   │
+│     - Logs in newly created user            │
+│     - Creates Authentik SSO session         │
+│     - Generates OIDC token for application  │
+│     - Redirects to complete login           │
 └─────────────────────────────────────────────┘
 ```
 
@@ -341,7 +329,7 @@ This prevents internal services (like Synapse) from routing through Cloudflare w
 │  If EXISTING USER (Sign In):               │
 │    ┌─────────────────────────────────┐    │
 │    │  Auth Flow                      │    │
-│    │  1. Enter username              │    │
+│    │  1. Click "Login with Passkey"  │    │
 │    │  2. Authenticate with passkey   │    │
 │    │  3. Login                       │    │
 │    └─────────────────────────────────┘    │

@@ -1,16 +1,10 @@
 # Passing Circle
 
-Temporary, privacy-focused chat for events. Self-hosted Docker stack with passkey-only authentication — no passwords, no accounts to manage.
+Temporary, privacy-focused chat for events. Self-hosted Docker stack with passkey-only authentication — no passwords, no accounts to manage, no (hopefuly) support overhead. 
 
 ## How It Works
 
-Passing Circle runs a full Matrix chat stack behind a single reverse proxy. Users authenticate with passkeys (biometric or PIN) instead of passwords. Usernames are auto-generated (e.g. `swift-fox-7291`). All user data can be wiped between events while preserving configuration.
-
-**User flow:**
-1. Open `https://chat.local/` — see landing page
-2. Click "Start Chatting" — redirected to passkey prompt
-3. New users click "Register" — create a passkey, get an auto-generated username, land in chat
-4. Returning users — browser prompts for existing passkey, straight into chat
+Passing Circle runs a full Matrix chat stack behind a single reverse proxy. Users flow is kept as simple and transparent to the user as possible. Solution leverages passkeys instead of passwords. Usernames are auto-generated (e.g. `swift-fox-7291`) but users can set their own. System is designed to be enrypted end to end with no way for organisers to have access to chat data and for all user data can be wiped between events while preserving configuration.
 
 ## Architecture
 
