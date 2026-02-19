@@ -68,7 +68,10 @@
 </head>
 <body>
     <div class="container">
-        <img src="/static/logo-text.svg" alt="{{ event_name }}" class="logo">
+        <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="/static/logo-text-light.svg">
+            <img src="/static/logo-text-dark.svg" alt="{{ event_name }}" class="logo">
+        </picture>
         <p class="tagline">{{ event_tagline }}</p>
         <a href="https://{{ domain }}/_matrix/client/v3/login/sso/redirect?redirectUrl=https%3A%2F%2F{{ domain }}%2Felement%2F" class="btn">
             Start Chatting
