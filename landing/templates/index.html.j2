@@ -21,10 +21,10 @@
             max-width: 600px;
             padding: 2rem;
         }
-        h1 {
-            font-size: 2.5rem;
+        .logo {
+            max-width: 320px;
+            width: 100%;
             margin-bottom: 0.5rem;
-            color: {{ primary_color }};
         }
         .tagline {
             font-size: 1.25rem;
@@ -68,7 +68,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>{{ event_name }}</h1>
+        <img src="/static/logo-text.svg" alt="{{ event_name }}" class="logo">
         <p class="tagline">{{ event_tagline }}</p>
         <a href="https://{{ domain }}/_matrix/client/v3/login/sso/redirect?redirectUrl=https%3A%2F%2F{{ domain }}%2Felement%2F" class="btn">
             Start Chatting

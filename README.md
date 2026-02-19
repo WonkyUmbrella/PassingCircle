@@ -1,5 +1,7 @@
 # Passing Circle
 
+<img src="landing/static/logo-text.svg" alt="Passing Circle" width="320">
+
 Temporary, privacy-focused chat for events. Self-hosted Docker stack with passkey-only authentication — no passwords, no accounts to manage, no (hopefuly) support overhead. 
 
 ## How It Works
