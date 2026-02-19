@@ -65,6 +65,10 @@ oidc_providers:
         localpart_template: "{% raw %}{{ user.preferred_username }}{% endraw %}"
         display_name_template: "{% raw %}{{ user.preferred_username }}{% endraw %}"
 
+sso:
+  client_whitelist:
+    - "https://{{ domain }}/element/"
+
 suppress_key_server_warning: true
 
 trusted_key_servers: []
