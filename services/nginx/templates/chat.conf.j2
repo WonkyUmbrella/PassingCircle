@@ -26,6 +26,12 @@ server {
         root /var/www/landing;
     }
 
+    # Redirect mobile guide back to Element
+    # (mobile_guide_toast config option is currently broken - GitHub #21616)
+    location = /element/mobile_guide {
+        return 302 /element/;
+    }
+
     # Element Web
     location /element/ {
         proxy_pass http://passingcircle-element:80/;
