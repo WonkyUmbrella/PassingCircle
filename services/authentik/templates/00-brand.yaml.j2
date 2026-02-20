@@ -28,12 +28,12 @@ entries:
         }
         /* Hide username field */
         .pf-c-form__group:has(input[name="uidField"]) { display: none !important; }
-        /* Hide Log in button */
-        .pf-c-form__group.pf-m-action { display: none !important; }
-        /* Hide Or divider */
-        ak-divider { display: none !important; }
-        /* Center buttons vertically in the card */
-        .pf-c-form {
+        /* Hide Log in button (only on identification page) */
+        .pf-c-form:has(input[name="uidField"]) > .pf-c-form__group.pf-m-action { display: none !important; }
+        /* Hide Or divider (only on identification page) */
+        .pf-c-form:has(input[name="uidField"]) > ak-divider { display: none !important; }
+        /* Center buttons vertically in the card (only on identification page) */
+        .pf-c-form:has(input[name="uidField"]) {
           display: flex !important;
           flex-direction: column !important;
           justify-content: center !important;
@@ -43,8 +43,8 @@ entries:
           padding: 1rem 1rem 0 !important;
           gap: 1rem !important;
         }
-        /* Fix asymmetric footer margin */
-        .pf-c-login__main-footer { margin: 0 !important; }
+        /* Fix asymmetric footer margin (only on identification page) */
+        .pf-c-login__main-footer:has(.pf-c-login__main-footer-band) { margin: 0 !important; }
         /* Big Sign in button */
         a[name="passwordless"].pf-c-button.pf-m-secondary.pf-m-block {
           font-size: 0 !important;
@@ -71,7 +71,7 @@ entries:
         }
         /* Sign up button area */
         .pf-c-login__main-footer-band {
-          padding: 0 64px !important;
+          padding: 0 64px 1.5rem !important;
           margin: 0 !important;
           background: none !important;
           border: none !important;
