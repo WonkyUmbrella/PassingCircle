@@ -68,7 +68,14 @@ oidc_providers:
 sso:
   client_whitelist:
     - "https://{{ domain }}/element/"
+{% if fluffychat_domain %}    - "https://{{ fluffychat_domain }}/"
+{% endif %}
 
 suppress_key_server_warning: true
 
 trusted_key_servers: []
+
+# Allow UIA to be satisfied by a recent SSO login (covers cross-signing key
+# upload which FluffyChat triggers ~30-60s after login).
+ui_auth:
+  session_timeout: "5m"

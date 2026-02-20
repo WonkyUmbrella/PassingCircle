@@ -9,6 +9,7 @@ docker build -t passingcircle-setup -f "$PROJECT_DIR/scripts/Dockerfile.setup" "
 echo "==> Running setup (generate configs, certs, secrets)..."
 docker run --rm \
     -v "$PROJECT_DIR:/project" \
+    --user "$(id -u):$(id -g)" \
     passingcircle-setup
 
 echo ""

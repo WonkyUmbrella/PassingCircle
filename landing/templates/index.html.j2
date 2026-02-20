@@ -31,6 +31,12 @@
             color: #666;
             margin-bottom: 2rem;
         }
+        .btn-row {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
         .btn {
             display: inline-block;
             padding: 1rem 2.5rem;
@@ -43,8 +49,16 @@
             text-decoration: none;
             cursor: pointer;
             transition: opacity 0.2s;
+            text-align: center;
         }
         .btn:hover { opacity: 0.9; }
+        .btn small {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 400;
+            opacity: 0.85;
+            margin-top: 0.2rem;
+        }
         .info {
             margin-top: 3rem;
             padding: 1.5rem;
@@ -73,9 +87,16 @@
             <img src="/static/logo-text-dark.svg" alt="{{ event_name }}" class="logo">
         </picture>
         <p class="tagline">{{ event_tagline }}</p>
-        <a href="https://{{ domain }}/element/" class="btn">
-            Start Chatting
-        </a>
+        <div class="btn-row">
+            <a href="https://{{ domain }}/element/" class="btn">
+                Element
+                <small>Desktop</small>
+            </a>
+{% if fluffychat_domain %}            <a href="https://{{ fluffychat_domain }}/" class="btn">
+                FluffyChat
+                <small>Mobile &amp; Desktop (PWA)</small>
+            </a>
+{% endif %}        </div>
         <div class="info">
             <h2>How it works</h2>
             <p><strong>No passwords needed.</strong> This chat uses passkeys &mdash; your device&rsquo;s biometric or PIN &mdash; to sign you in.</p>

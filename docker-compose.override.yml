@@ -1,0 +1,3 @@
+services:
+  passingcircle-fluffychat:
+    image: fluffychat-local

@@ -82,14 +82,18 @@ def generate_certs(cfg):
         print("  [tls] Certificates already exist, skipping")
         return
 
-    print(f"  [tls] Generating self-signed certificate for {domain} and {auth_domain}")
+    fluffychat_domain = cfg["network"].get("fluffychat_domain")
+    san = f"DNS:{domain},DNS:{auth_domain}"
+    if fluffychat_domain:
+        san += f",DNS:{fluffychat_domain}"
+    print(f"  [tls] Generating self-signed certificate for {san}")
     subprocess.run(
         [
             "openssl", "req", "-x509", "-newkey", "rsa:2048",
             "-keyout", key_file, "-out", cert_file,
             "-days", "365", "-nodes",
             "-subj", f"/CN={domain}",
-            "-addext", f"subjectAltName=DNS:{domain},DNS:{auth_domain}",
+            "-addext", f"subjectAltName={san}",
         ],
         check=True,
         capture_output=True,
@@ -148,6 +152,8 @@ def render_templates(cfg):
         "rooms": cfg.get("rooms", []),
         # Landing
         "primary_color": cfg.get("landing", {}).get("primary_color", "#4A90D9"),
+        # Optional clients
+        "fluffychat_domain": net.get("fluffychat_domain", ""),
     }
 
     templates = [
@@ -172,7 +178,12 @@ def render_templates(cfg):
         ("services/authentik/templates/04-link-flows.yaml.j2", "services/authentik/blueprints/04-link-flows.yaml"),
     ]
 
-    all_templates = templates + synapse_templates + element_templates + authentik_templates
+    fluffychat_templates = [
+        ("services/nginx/templates/fluffychat.conf.j2", "services/nginx/conf.d/fluffychat.conf"),
+        ("services/fluffychat/templates/config.json.j2", "services/fluffychat/config.json"),
+    ]
+
+    all_templates = templates + synapse_templates + element_templates + fluffychat_templates + authentik_templates
 
     for src_rel, dst_rel in all_templates:
         src = os.path.join(PROJECT_DIR, src_rel)

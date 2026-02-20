@@ -1,0 +1,66 @@
+server {
+    listen 80;
+    server_name {{ fluffychat_domain }};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ fluffychat_domain }};
+
+    ssl_certificate /etc/nginx/certs/{{ domain }}.crt;
+    ssl_certificate_key /etc/nginx/certs/{{ domain }}.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    client_max_body_size {{ max_upload_size_mb }}m;
+
+    # Increase proxy buffers to handle large WASM/JS files without temp files
+    proxy_buffer_size 128k;
+    proxy_buffers 8 256k;
+    proxy_busy_buffers_size 512k;
+
+    # Versioned chunk files — content-hashed filenames, safe to cache for 1 year
+    location ~* \.(js|wasm)$ {
+        proxy_pass http://passingcircle-fluffychat:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "public, max-age=86400";
+        add_header Vary "Accept-Encoding";
+    }
+
+    # Fonts, images, other static assets
+    location ~* \.(otf|ttf|woff|woff2|png|jpg|gif|svg|ico|bin)$ {
+        proxy_pass http://passingcircle-fluffychat:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "public, max-age=604800";
+    }
+
+    # Root — auto-redirect to SSO on first visit
+    location = / {
+        return 302 https://{{ domain }}/_matrix/client/v3/login/sso/redirect?redirectUrl=https%3A%2F%2F{{ fluffychat_domain }}%2Fauth.html;
+    }
+
+    # auth.html — SSO callback. Sets flutter-web-auth-2 in localStorage, then
+    # redirects to / so FluffyChat can pick up the token. The stock auth.html
+    # calls window.close() instead, which only works in popup mode.
+    location = /auth.html {
+        default_type text/html;
+        return 200 "<!DOCTYPE html><title>Auth</title><script>var k=\"flutter-web-auth-2\";if(window.opener){var o={};o[k]=location.href;window.opener.postMessage(o,location.origin);window.close();}else{localStorage.setItem(k,location.href);location.replace(\"/index.html\");}</script>";
+    }
+
+    # Everything else (HTML, manifests, config) — always revalidate
+    location / {
+        proxy_pass http://passingcircle-fluffychat:80/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "no-cache";
+    }
+}
