@@ -53,21 +53,25 @@ entries:
           border: 2px solid var(--pf-c-button--m-primary--BackgroundColor, #06c) !important;
           height: 70px !important;
           padding: 0 1.5rem !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
+          display: block !important;
+          position: relative !important;
           box-sizing: border-box !important;
           border-radius: 8px !important;
+          text-decoration: none !important;
         }
         a[name="passwordless"].pf-c-button.pf-m-secondary.pf-m-block::after {
           content: "Sign in" !important;
           font-size: 1.4rem !important;
           font-weight: 600 !important;
           line-height: normal !important;
+          position: absolute !important;
+          top: 50% !important;
+          left: 50% !important;
+          transform: translate(-50%, -50%) !important;
         }
         /* Sign up button area */
         .pf-c-login__main-footer-band {
-          padding: 0 1rem !important;
+          padding: 0 64px !important;
           margin: 0 !important;
           background: none !important;
           border: none !important;
