@@ -10,6 +10,7 @@ services:
       - ./services/nginx/certs:/etc/nginx/certs:ro
       - ./services/nginx/well-known:/var/www/well-known:ro
       - ./landing/dist:/var/www/landing:ro
+      - ./landing/static:/var/www/branding:ro
     depends_on:
       - passingcircle-synapse
       - passingcircle-element
@@ -86,10 +87,9 @@ services:
 
   passingcircle-authentik-server:
     container_name: passingcircle-authentik-server
-    image: ghcr.io/goauthentik/server:latest
+    image: ghcr.io/goauthentik/server:2025.12
     command: server
     environment:
-      AUTHENTIK_REDIS__HOST: passingcircle-authentik-redis
       AUTHENTIK_POSTGRESQL__HOST: passingcircle-authentik-db
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
@@ -100,7 +100,7 @@ services:
       AUTHENTIK_BOOTSTRAP_EMAIL: admin@${DOMAIN}
       AUTHENTIK_LOG_LEVEL: debug
     volumes:
-      - ./data/authentik-media:/media
+      - ./data/authentik-data:/data
       - ./services/authentik/blueprints:/blueprints/custom:ro
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:9000/-/health/ready/')\""]
@@ -111,18 +111,15 @@ services:
     depends_on:
       passingcircle-authentik-db:
         condition: service_healthy
-      passingcircle-authentik-redis:
-        condition: service_healthy
     restart: unless-stopped
     networks:
       - backend
 
   passingcircle-authentik-worker:
     container_name: passingcircle-authentik-worker
-    image: ghcr.io/goauthentik/server:latest
+    image: ghcr.io/goauthentik/server:2025.12
     command: worker
     environment:
-      AUTHENTIK_REDIS__HOST: passingcircle-authentik-redis
       AUTHENTIK_POSTGRESQL__HOST: passingcircle-authentik-db
       AUTHENTIK_POSTGRESQL__USER: authentik
       AUTHENTIK_POSTGRESQL__NAME: authentik
@@ -133,12 +130,10 @@ services:
       AUTHENTIK_BOOTSTRAP_EMAIL: admin@${DOMAIN}
       AUTHENTIK_LOG_LEVEL: debug
     volumes:
-      - ./data/authentik-media:/media
+      - ./data/authentik-data:/data
       - ./services/authentik/blueprints:/blueprints/custom:ro
     depends_on:
       passingcircle-authentik-db:
-        condition: service_healthy
-      passingcircle-authentik-redis:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -155,21 +150,6 @@ services:
       - ./data/authentik-db:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U authentik"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - backend
-
-  passingcircle-authentik-redis:
-    container_name: passingcircle-authentik-redis
-    image: redis:7-alpine
-    command: --save 60 1 --loglevel warning
-    volumes:
-      - ./data/redis:/data
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       interval: 5s
       timeout: 5s
       retries: 5

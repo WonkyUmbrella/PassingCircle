@@ -1,4 +1,6 @@
 {
     "defaultHomeserver": "chat.passingcircle.com",
-    "autoSsoRedirect": true
+    "sendTypingNotifications": false,
+    "sendPublicReadReceipts": false,
+    "experimentalVoip": true
 }

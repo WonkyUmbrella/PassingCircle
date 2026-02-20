@@ -13,6 +13,12 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
+    location /branding/ {
+        alias /var/www/branding/;
+        expires 1d;
+        add_header Cache-Control "public, immutable";
+    }
+
     location / {
         proxy_pass http://passingcircle-authentik-server:9000;
         proxy_set_header Host $host;

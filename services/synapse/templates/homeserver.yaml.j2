@@ -64,6 +64,7 @@ oidc_providers:
       config:
         localpart_template: "{% raw %}{{ user.preferred_username }}{% endraw %}"
         display_name_template: "{% raw %}{{ user.preferred_username }}{% endraw %}"
+        confirm_localpart: false
 
 sso:
   client_whitelist:

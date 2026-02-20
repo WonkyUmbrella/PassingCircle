@@ -11,6 +11,93 @@ entries:
     attrs:
       default: true
       branding_title: "{{ event_name }}"
+      branding_logo: https://{{ auth_domain }}/branding/logo-text-dark.svg
+      branding_custom_css: |
+        /* === Passing Circle: Simplify login to Sign in / Sign up === */
+        /* Hide "Sign In" heading (in ak-flow-card shadow DOM only, not the logo) */
+        .pf-c-login__main-header:not(.pf-c-brand) { display: none !important; }
+        /* Style the logo container */
+        .pf-c-login__main-header.pf-c-brand {
+          display: flex !important;
+          justify-content: center !important;
+          padding: 2rem 2rem 1rem !important;
+        }
+        .pf-c-login__main-header.pf-c-brand .branding-logo {
+          max-height: 80px !important;
+          width: auto !important;
+        }
+        /* Hide username field */
+        .pf-c-form__group:has(input[name="uidField"]) { display: none !important; }
+        /* Hide Log in button */
+        .pf-c-form__group.pf-m-action { display: none !important; }
+        /* Hide Or divider */
+        ak-divider { display: none !important; }
+        /* Center buttons vertically in the card */
+        .pf-c-form {
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: center !important;
+          flex-grow: 1 !important;
+          align-items: stretch !important;
+          min-height: auto !important;
+          padding: 1rem 1rem 0 !important;
+          gap: 1rem !important;
+        }
+        /* Fix asymmetric footer margin */
+        .pf-c-login__main-footer { margin: 0 !important; }
+        /* Big Sign in button */
+        a[name="passwordless"].pf-c-button.pf-m-secondary.pf-m-block {
+          font-size: 0 !important;
+          background-color: var(--pf-c-button--m-primary--BackgroundColor, #06c) !important;
+          color: var(--pf-c-button--m-primary--Color, #fff) !important;
+          border: 2px solid var(--pf-c-button--m-primary--BackgroundColor, #06c) !important;
+          height: 70px !important;
+          padding: 0 1.5rem !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
+          border-radius: 8px !important;
+        }
+        a[name="passwordless"].pf-c-button.pf-m-secondary.pf-m-block::after {
+          content: "Sign in" !important;
+          font-size: 1.4rem !important;
+          font-weight: 600 !important;
+          line-height: normal !important;
+        }
+        /* Sign up button area */
+        .pf-c-login__main-footer-band {
+          padding: 0 1rem !important;
+          margin: 0 !important;
+          background: none !important;
+          border: none !important;
+        }
+        .pf-c-login__main-footer-band-item {
+          font-size: 0 !important;
+          padding: 0 !important;
+          margin-top: 1rem !important;
+        }
+        .pf-c-login__main-footer-band-item a[name="enroll"] {
+          font-size: 0 !important;
+          height: 70px !important;
+          padding: 0 1.5rem !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border: 2px solid var(--pf-c-button--m-primary--BackgroundColor, #06c) !important;
+          border-radius: 8px !important;
+          color: var(--pf-c-button--m-primary--BackgroundColor, #06c) !important;
+          text-decoration: none !important;
+          background: transparent !important;
+        }
+        .pf-c-login__main-footer-band-item a[name="enroll"]::after {
+          content: "Sign up" !important;
+          font-size: 1.4rem !important;
+          font-weight: 600 !important;
+          line-height: normal !important;
+        }
       flow_authentication: !Find [authentik_flows.flow, [slug, passingcircle-auth]]
       flow_invalidation: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
       flow_recovery: !Find [authentik_flows.flow, [slug, default-recovery-flow]]

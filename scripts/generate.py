@@ -247,8 +247,7 @@ def create_data_dirs():
         "data/synapse-db",
         "data/synapse-media",
         "data/authentik-db",
-        "data/authentik-media",
-        "data/redis",
+        "data/authentik-data",
     ]
     for d in dirs:
         path = os.path.join(PROJECT_DIR, d)
