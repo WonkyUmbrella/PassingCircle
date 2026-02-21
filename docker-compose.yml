@@ -78,7 +78,9 @@ services:
 
   passingcircle-fluffychat:
     container_name: passingcircle-fluffychat
-    image: ghcr.io/krille-chan/fluffychat:v2.4.1
+    build:
+      context: https://github.com/swherdman/fluffychat.git#swherdman/auto-sso-redirect
+    image: fluffychat-local
     volumes:
       - ./services/fluffychat/config.json:/usr/share/nginx/html/config.json:ro
     restart: unless-stopped
