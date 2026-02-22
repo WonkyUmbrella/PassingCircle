@@ -167,9 +167,9 @@ def render_templates(cfg):
         ("services/synapse/templates/homeserver.yaml.j2", "services/synapse/homeserver.yaml"),
         ("services/synapse/templates/log.config.j2", "services/synapse/log.config"),
     ]
-    element_templates = [
-        ("services/element/templates/config.json.j2", "services/element/config.json"),
-    ]
+    # element_templates = [
+    #     ("services/element/templates/config.json.j2", "services/element/config.json"),
+    # ]
     authentik_templates = [
         ("services/authentik/templates/00-brand.yaml.j2", "services/authentik/blueprints/00-brand.yaml"),
         ("services/authentik/templates/01-flow-auth.yaml.j2", "services/authentik/blueprints/01-flow-auth.yaml"),
@@ -183,7 +183,7 @@ def render_templates(cfg):
         ("services/fluffychat/templates/config.json.j2", "services/fluffychat/config.json"),
     ]
 
-    all_templates = templates + synapse_templates + element_templates + fluffychat_templates + authentik_templates
+    all_templates = templates + synapse_templates + fluffychat_templates + authentik_templates
 
     for src_rel, dst_rel in all_templates:
         src = os.path.join(PROJECT_DIR, src_rel)
