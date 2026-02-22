@@ -1,14 +1,17 @@
-# Cloudflare Tunnel Setup for Development
+# Cloudflare Tunnel Setup (Demo / Development Only)
+
+> **Scope:** This setup is for **demo and development testing only**. It routes traffic from Cloudflare's edge through an outbound tunnel to a local Docker stack. Production deployments will require a different solution (e.g. a hosted VM with proper TLS, a container platform with ingress, or a different tunnel/proxy architecture).
 
 This guide sets up Cloudflare Tunnel to provide proper TLS certificates and public access to your local Passing Circle instance.
 
 ## Why Cloudflare Tunnel?
 
-- ✅ **Proper TLS certificates** - Cloudflare-managed, no self-signed cert issues
-- ✅ **WebAuthn compatibility** - Real domains work with passkeys
-- ✅ **No port forwarding** - Secure outbound-only tunnel
-- ✅ **DDoS protection** - Cloudflare's edge network
-- ✅ **Zero Trust security** - Control access via Cloudflare Access (optional)
+WebAuthn (passkeys) requires HTTPS with a valid certificate from a trusted CA. Self-signed certs on `.local` domains fail browser security checks. Cloudflare Tunnel is a quick way to get valid TLS for development without provisioning infrastructure.
+
+- **Proper TLS certificates** — Cloudflare-managed, no self-signed cert issues
+- **WebAuthn compatibility** — real domains work with passkeys
+- **No port forwarding** — secure outbound-only tunnel
+- **Free tier** — no cost for development use
 
 ## Prerequisites
 
@@ -147,12 +150,13 @@ docker compose logs cloudflare-tunnel
 
 ## Step 7: Test Access
 
-1. **Navigate to** `https://chat.passingcircle.com`
-2. **Should see** Element landing page with "Start Chatting"
-3. **Click "Start Chatting"** → Redirected to `https://auth.chat.passingcircle.com`
-4. **Click "Register"** → Enrollment flow
-5. **Complete enrollment** (username → passkey registration)
-6. **Result**: Logged into Element chat
+1. **Navigate to** `https://chat-mobile.passingcircle.com` (FluffyChat)
+2. **Should be** redirected to Authentik for authentication
+3. **Click "Register"** → Enrollment flow
+4. **Complete enrollment** (username → passkey registration)
+5. **Result**: Logged into FluffyChat
+
+Alternatively, visit `https://chat.passingcircle.com` for the landing page with client options.
 
 **Verify TLS**:
 - Browser should show valid Cloudflare certificate
@@ -169,7 +173,7 @@ docker compose logs cloudflare-tunnel
    - Browser will show standard WebAuthn prompt
    - Platform authenticator (Windows Hello, Touch ID, etc.) should work
 3. Complete registration
-4. Should be redirected back to Element and logged in
+4. Should be redirected back to FluffyChat and logged in
 
 ---
 
@@ -216,16 +220,17 @@ nslookup auth.chat.passingcircle.com
 
 ---
 
-## Production Notes
+## Limitations
 
-**For production deployment**:
+This tunnel setup is **not suitable for production**. Key constraints:
 
-1. **Use separate tunnel** for production (not `-dev`)
-2. **Enable Cloudflare Access** for auth.chat.passingcircle.com (optional extra security)
-3. **Configure rate limiting** in Cloudflare
-4. **Enable WAF rules** for protection
-5. **Set up monitoring** for tunnel health
-6. **Use proper secrets management** (not .env file)
+- Depends on the developer's local machine being online and running Docker
+- Single point of failure — no redundancy or failover
+- Tunnel token stored in a local `.env.cloudflare` file
+- No monitoring, alerting, or automated recovery
+- Cloudflare Tunnel free tier has no SLA
+
+Production deployments should use a hosted solution with proper TLS certificate management (e.g. Let's Encrypt), redundancy, and secrets management. The Passing Circle stack itself is portable — only the tunnel/proxy layer needs replacing.
 
 ---
 
@@ -284,11 +289,11 @@ git checkout config/passingcircle.yml
 │  ┌──────────────────▼───────────────────────────────┐      │
 │  │  NGINX (reverse proxy)                          │      │
 │  │  • Self-signed cert (internal only)             │      │
-│  │  • Routes to Authentik / Synapse / Element      │      │
+│  │  • Routes to Authentik / Synapse / FluffyChat   │      │
 │  └──────────┬───────────────────┬──────────────────┘      │
 │             │                   │                          │
 │  ┌──────────▼──────┐  ┌────────▼─────────────────┐        │
-│  │  Authentik      │  │  Synapse + Element       │        │
+│  │  Authentik      │  │  Synapse + FluffyChat    │        │
 │  │  (auth)         │  │  (Matrix chat)           │        │
 │  └─────────────────┘  └──────────────────────────┘        │
 └─────────────────────────────────────────────────────────────┘

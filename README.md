@@ -5,32 +5,34 @@
   <img src="landing/static/logo-text-dark.svg" alt="Passing Circle" width="320">
 </picture>
 
-Temporary, privacy-focused chat for events. Self-hosted Docker stack with passkey-only authentication — no passwords, no accounts to manage, no (hopefuly) support overhead. 
+Temporary, privacy-focused chat for events. Self-hosted Docker stack with passkey-only authentication — no passwords, no accounts to manage, no (hopefully) support overhead.
 
 ## How It Works
 
-Passing Circle runs a full Matrix chat stack behind a single reverse proxy. Users flow is kept as simple and transparent to the user as possible. Solution leverages passkeys instead of passwords. Usernames are auto-generated (e.g. `swift-fox-7291`) but users can set their own. System is designed to be enrypted end to end with no way for organisers to have access to chat data and for all user data can be wiped between events while preserving configuration.
+Passing Circle runs a full Matrix chat stack behind a single reverse proxy. The user flow is kept as simple and transparent as possible. The solution leverages passkeys instead of passwords. Usernames are auto-generated (e.g. `swift-fox-7291`) but users can set their own. All user data can be wiped between events while preserving configuration.
+
+> **Note:** Private rooms and direct messages are encrypted end-to-end by default (enforced by Synapse). Public rooms (general, announcements) are unencrypted so that late joiners can see full message history.
 
 ## Architecture
 
-8 containers, 2 DNS entries, zero external dependencies.
+8 containers, 3 DNS entries, zero external dependencies beyond Docker.
 
 | Container | Purpose |
 |-----------|---------|
 | nginx | Reverse proxy + TLS termination |
 | synapse | Matrix homeserver |
 | synapse-db | Synapse PostgreSQL |
-| element | Matrix web client |
+| fluffychat | Matrix web client ([custom fork](https://github.com/swherdman/fluffychat) with auto-SSO) |
+| element | Matrix web client (optional, disabled by default) |
 | authentik-server | Identity provider (OIDC + passkeys) |
 | authentik-worker | Authentik background tasks |
 | authentik-db | Authentik PostgreSQL |
-| authentik-redis | Authentik cache |
 
 ```
-chat.local/            → Landing page
-chat.local/element/    → Element Web client
-chat.local/_matrix/*   → Synapse API
-auth.chat.local/*      → Authentik IdP
+chat.example.com/                → Landing page
+chat.example.com/_matrix/*       → Synapse API
+chat-auth.example.com/*          → Authentik IdP
+chat-mobile.example.com/*        → FluffyChat client (auto-SSO redirect)
 ```
 
 ## Quick Start
@@ -38,18 +40,21 @@ auth.chat.local/*      → Authentik IdP
 ### Prerequisites
 
 - Docker and Docker Compose
-- DNS or `/etc/hosts` entries pointing `chat.local` and `auth.chat.local` to your host IP
+- A domain with valid TLS certificates (passkeys/WebAuthn require HTTPS from a trusted CA — self-signed certs will not work for authentication)
+- DNS entries for your three subdomains (chat, auth, mobile client)
+
+> **Note:** There is no turnkey solution for TLS/domain provisioning yet. You need to bring your own domain and certificates. During development, a [Cloudflare Tunnel](docs/setup/cloudflare-tunnel.md) can be used as a workaround.
 
 ### Setup
 
-1. **Configure** — edit `config/passingcircle.yml` with your event name, host IP, and room list.
+1. **Configure** — edit `config/passingcircle.yml` with your event name, domains, host IP, and room list.
 
 2. **Generate** — run setup to generate secrets, TLS certs, and all service configs:
    ```bash
    ./scripts/setup.sh
    ```
 
-3. **Start** — bring up all 8 containers:
+3. **Start** — bring up the stack:
    ```bash
    docker compose up -d
    ```
@@ -59,7 +64,7 @@ auth.chat.local/*      → Authentik IdP
    ./scripts/init-rooms.sh
    ```
 
-5. **Open** `https://chat.local/` — your browser will warn about the self-signed certificate, which is expected.
+5. **Open** your configured domain — the landing page will offer the FluffyChat client.
 
 ## Configuration
 
@@ -71,8 +76,9 @@ event:
   tagline: "Connect. Collaborate."
 
 network:
-  domain: "chat.local"
-  auth_domain: "auth.chat.local"
+  domain: "chat.example.com"
+  auth_domain: "chat-auth.example.com"
+  fluffychat_domain: "chat-mobile.example.com"
   host_ip: "192.168.1.100"
 
 rooms:
@@ -115,12 +121,15 @@ scripts/
 services/
   nginx/templates/                # NGINX reverse proxy configs
   synapse/templates/              # Matrix homeserver config
-  element/templates/              # Element Web client config
+  fluffychat/templates/           # FluffyChat client config
   authentik/templates/            # Authentik IdP blueprints
 landing/templates/                # Landing page
+docs/                             # Detailed documentation
 ```
 
 Templates are Jinja2 files rendered by `scripts/generate.py` during setup. Generated output (configs, certs, `.env`) is gitignored.
+
+See [docs/README.md](docs/README.md) for detailed architecture, setup, and operations documentation.
 
 ## License
 
