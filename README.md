@@ -8,7 +8,8 @@
 # Passing Circle
 
 > [!WARNING]
-> This project is under active development and is not yet ready for use. It is being developed by [@swherdman](https://github.com/swherdman).
+> This project is under active development and is not yet ready for use. 
+> This project is being built by [@swherdman](https://github.com/swherdman).
 
 Temporary, privacy-focused chat for events. Self-hosted Docker stack with passkey-only authentication — no passwords, no accounts to manage, no (hopefully) support overhead.
 

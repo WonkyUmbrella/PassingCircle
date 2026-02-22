@@ -24,19 +24,19 @@
      |
      | 3. OIDC redirect to Authentik
      v
-+---------------------------------------------+
-|              AUTHENTIK                       |
-|                                             |
++--------------------------------------------+
+|              AUTHENTIK                     |
+|                                            |
 |  If NEW USER (Register):                   |
 |    +----------------------------------+    |
 |    |  Enrollment Flow                 |    |
 |    |  1. Generate/edit username       |    |
 |    |  2. Derive email/name (policy)   |    |
-|    |  3. Create account              |    |
-|    |  4. Register passkey            |    |
-|    |  5. Auto-login                  |    |
+|    |  3. Create account               |    |
+|    |  4. Register passkey             |    |
+|    |  5. Auto-login                   |    |
 |    +----------------------------------+    |
-|                                             |
+|                                            |
 |  If EXISTING USER (Sign In):               |
 |    +----------------------------------+    |
 |    |  Auth Flow                       |    |
@@ -44,8 +44,8 @@
 |    |  2. Authenticate with passkey    |    |
 |    |  3. Login                        |    |
 |    +----------------------------------+    |
-|                                             |
-+----+----------------------------------------+
+|                                            |
++----+---------------------------------------+
      |
      | 4. OIDC callback with loginToken
      v
