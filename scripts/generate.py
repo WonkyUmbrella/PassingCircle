@@ -133,7 +133,7 @@ def render_templates(cfg):
         # Network
         "domain": net["domain"],
         "auth_domain": net["auth_domain"],
-        "host_ip": net["host_ip"],
+        "host_ip": net.get("host_ip", ""),
         # Event
         "event_name": cfg["event"]["name"],
         "event_tagline": cfg["event"]["tagline"],
@@ -241,20 +241,6 @@ def generate_dotenv(cfg):
     print("  [dotenv] Generated .env")
 
 
-def create_data_dirs():
-    """Create persistent data directories."""
-    dirs = [
-        "data/synapse-db",
-        "data/synapse-media",
-        "data/authentik-db",
-        "data/authentik-data",
-    ]
-    for d in dirs:
-        path = os.path.join(PROJECT_DIR, d)
-        os.makedirs(path, exist_ok=True)
-    print("  [data] Created data directories")
-
-
 def main():
     print("Passing Circle Setup")
     print("=" * 40)
@@ -278,9 +264,6 @@ def main():
 
     print("\n6. Docker Environment")
     generate_dotenv(cfg)
-
-    print("\n7. Data Directories")
-    create_data_dirs()
 
     print("\n" + "=" * 40)
     print("Setup complete!")

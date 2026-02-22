@@ -9,8 +9,7 @@ echo "==========================================="
 echo ""
 echo "This will DELETE all user data:"
 echo "  - Synapse database + media"
-echo "  - Authentik database + media"
-echo "  - Redis data"
+echo "  - Authentik database + data"
 echo ""
 echo "PRESERVED:"
 echo "  - config/passingcircle.yml"
@@ -30,19 +29,9 @@ echo "==> Stopping containers..."
 cd "$PROJECT_DIR"
 docker compose down 2>/dev/null || true
 
-echo "==> Removing data directories..."
-rm -rf "$PROJECT_DIR/data/synapse-db"
-rm -rf "$PROJECT_DIR/data/synapse-media"
-rm -rf "$PROJECT_DIR/data/authentik-db"
-rm -rf "$PROJECT_DIR/data/authentik-media"
-rm -rf "$PROJECT_DIR/data/redis"
-
-echo "==> Recreating empty data directories..."
-mkdir -p "$PROJECT_DIR/data/synapse-db"
-mkdir -p "$PROJECT_DIR/data/synapse-media"
-mkdir -p "$PROJECT_DIR/data/authentik-db"
-mkdir -p "$PROJECT_DIR/data/authentik-media"
-mkdir -p "$PROJECT_DIR/data/redis"
+echo "==> Removing data volumes..."
+docker volume rm passingcircle_synapse-db passingcircle_synapse-media \
+  passingcircle_authentik-db passingcircle_authentik-data 2>/dev/null || true
 
 echo ""
 echo "==========================================="
