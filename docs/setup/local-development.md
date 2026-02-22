@@ -1,5 +1,54 @@
 # Local Development
 
+## Development Architecture
+
+In development, a Cloudflare Tunnel provides valid TLS for passkey (WebAuthn) compatibility, since `.local` domains with self-signed certs fail browser security checks.
+
+```
+                        +---------------------+
+                        |   CLOUDFLARE EDGE   |
+                        |  (External Service) |
+                        +----------+----------+
+                                   Ʌ 
+                                   | HTTPS (public internet)
+                                   | chat.passingcircle.com
+                                   | chat-auth.passingcircle.com
+                                   | chat-mobile.passingcircle.com
+                                   |
+=================================  |  ==================================
+LOCAL DOCKER STACK                 | (outbound tunnel connection)
+                                   |
+                       +-----------+-----------+
+                       |  CLOUDFLARE TUNNEL    |
+                       |  (Tunnel Client)      |
+                       +-----------+-----------+
+                                   |
+                                   | Frontend Network
+                                   |
+                                   |
+       +--------------------------------------------------------------+
+       |                    NGINX (Reverse Proxy)                     |
+       +---------------------+-------------------+--------------------+
+       | chat.pc.com         | chat-auth.pc.com  | chat-mobile.pc.com |
+       |                     |                   |                    |
+       | /        -> Landing | / -> Authentik    | / -> SSO redirect  |
+       | /_matrix -> Synapse |                   | /* -> FluffyChat   |
+       +--------+------------+--------+----------+---------+----------+
+                |                     |                   |
+                |              Backend Network            |
+                |                     |                   |
+                v                     v                   v
+          +-----------+        +------------+       +------------+
+          |  Synapse  |        | AUTHENTIK  |       | fluffychat |
+          |  (Matrix) |        | (Identity) |       |  (Chat ui) |
+          +-----------+        +-----+------+       +------------+
+                                     |
+                               +-----v------+
+                               |  Postgres  |
+                               +------------+
+
+See [Cloudflare Tunnel Setup](cloudflare-tunnel.md) for configuration details.
+
 ## Prerequisites
 
 - Docker and Docker Compose

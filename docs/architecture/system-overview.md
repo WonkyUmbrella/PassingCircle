@@ -10,59 +10,42 @@ Passing Circle is a temporary, privacy-focused chat system for events. It provid
 - Matrix-based chat via [FluffyChat](https://github.com/krille-chan/fluffychat) (default) with optional [Element Web](https://element.io/) support
 - OIDC-based SSO via [Authentik](https://goauthentik.io/)
 - Self-hosted Docker stack (8 containers)
-- Cloudflare Tunnel for production TLS
+- Cloudflare Tunnel available for development TLS (WebAuthn requires valid certs)
 
 ## System Architecture
 
 ```
-                        +---------------------+
-                        |   CLOUDFLARE EDGE   |
-                        |  (External Service) |
-                        +----------+----------+
-                                   |
-                                   | HTTPS (public internet)
-                                   | chat.passingcircle.com
-                                   | chat-auth.passingcircle.com
-                                   | chat-mobile.passingcircle.com
-                                   |
-=================================  |  ==================================
-LOCAL DOCKER STACK                 | (outbound tunnel connection)
-                                   |
-                       +-----------+-----------+
-                       |  CLOUDFLARE TUNNEL    |
-                       |  (Tunnel Client)      |
-                       +-----------+-----------+
-                                   |
-                                   | Frontend Network
-                                   |
-                                   v
-       +-----------------------------------------------------------+
-       |                  NGINX (Reverse Proxy)                     |
-       +-------------------+-------------------+--------------------+
-       | chat.pc.com       | chat-auth.pc.com  | chat-mobile.pc.com |
-       |                   |                   |                    |
-       | /      -> Landing | / -> Authentik    | / -> SSO redirect  |
-       | /_matrix -> Synapse|                  | /* -> FluffyChat   |
-       | /element -> Element|                  |                    |
-       +--------+----------+--------+---------+---------+----------+
-                |                    |                   |
-                |        Backend Network                |
-                |                    |                   |
-        +-------+-------+           |           +-------+-------+
-        |               |           |           |               |
-        v               v           v           v               v
-  +-----------+ +-----------+ +-----------+ +-----------+ +-----------+
-  | FLUFFYCHAT| |  SYNAPSE  | | AUTHENTIK | |  ELEMENT  | | AUTHENTIK |
-  |  (Chat)   | |  (Matrix) |<| (Identity)| | (Optional)| |  (Worker) |
-  +-----------+ +-----+-----+ +-----+-----+ +-----------+ +-----------+
-                      |              |
-                      |       +------+--------+
-                      |       |               |
-                +-----v-----+ +-----v-----+
-                |  Postgres  | |  Postgres  |
-                |  (Synapse) | | (Authentik)|
-                +------------+ +------------+
+                           Users
+                             |
+                             | HTTPS
+                             | chat.passingcircle.com
+                             | chat-auth.passingcircle.com
+                             | chat-mobile.passingcircle.com
+                             |
+                             v
+       +--------------------------------------------------------------+
+       |                    NGINX (Reverse Proxy)                     |
+       +---------------------+-------------------+--------------------+
+       | chat.pc.com         | chat-auth.pc.com  | chat-mobile.pc.com |
+       |                     |                   |                    |
+       | /        -> Landing | / -> Authentik    | / -> SSO redirect  |
+       | /_matrix -> Synapse |                   | /* -> FluffyChat   |
+       +--------+------------+--------+----------+---------+----------+
+                |                     |                   |
+                |              Backend Network            |
+                |                     |                   |
+                v                     v                   v
+          +-----------+        +------------+       +------------+
+          |  Synapse  |        | AUTHENTIK  |       | fluffychat |
+          |  (Matrix) |        | (Identity) |       |  (Chat ui) |
+          +-----------+        +-----+------+       +------------+
+                                     |
+                               +-----v------+
+                               |  Postgres  |
+                               +------------+
 ```
+
+For development with Cloudflare Tunnel (needed for WebAuthn with self-signed certs), see the [development architecture](../setup/local-development.md#development-architecture).
 
 ## Component Details
 
@@ -70,7 +53,7 @@ LOCAL DOCKER STACK                 | (outbound tunnel connection)
 
 **Purpose:** Reverse proxy and TLS termination for all services.
 
-**Networks:** Frontend (exposed), Backend (internal bridge)
+**Networks:** Exposed (ports 80/443), Backend (internal)
 
 **Three server blocks:**
 
@@ -165,37 +148,18 @@ See [FluffyChat Auto-SSO](fluffychat-auto-sso.md) for details on the fork and au
 - Blueprints create/update objects but **do not delete** — manual cleanup required
 - See [Authentik Blueprints](../operations/authentik-blueprints.md) for troubleshooting
 
-### 6. Cloudflare Tunnel (dev/prod overlay)
+### 6. Cloudflare Tunnel (development only)
 
-**Purpose:** Secure tunnel providing valid TLS for passkey (WebAuthn) compatibility.
+In development, a Cloudflare Tunnel sits in front of NGINX to provide valid TLS for passkey (WebAuthn) compatibility, since `.local` domains with self-signed certs fail browser security checks.
 
-**Networks:** Frontend only
-
-**Why needed:**
-- WebAuthn requires a secure context (HTTPS with a valid certificate)
-- `.local` TLD with self-signed certs fails browser WebAuthn checks
-- Cloudflare provides valid TLS at the edge; the tunnel connects to internal NGINX
-
-**Configuration:**
-- Routes traffic from Cloudflare edge to `passingcircle-nginx:443`
-- TLS verification disabled (self-signed certs between tunnel and NGINX)
-- Three domains routed: `chat.passingcircle.com`, `chat-auth.passingcircle.com`, `chat-mobile.passingcircle.com`
-- Runs via `docker-compose.dev.yml` overlay (excluded from git)
-
-See [Cloudflare Tunnel Setup](../setup/cloudflare-tunnel.md) for full instructions.
+See [Local Development](../setup/local-development.md#development-architecture) for the development architecture diagram and [Cloudflare Tunnel Setup](../setup/cloudflare-tunnel.md) for configuration.
 
 ## Network Architecture
 
-### Frontend Network
+NGINX is the only externally exposed service. All other containers communicate on an internal backend network.
 
-Public-facing services and reverse proxy:
-- NGINX (exposed, bridge to backend)
-- Cloudflare Tunnel (dev/prod)
-
-### Backend Network
-
-Internal services, databases, and inter-service communication:
-- NGINX (bridge from frontend)
+**Backend Network** — internal services, databases, and inter-service communication:
+- NGINX (public-facing, bridges to backend)
 - Synapse
 - FluffyChat
 - Element Web (optional)
@@ -203,7 +167,7 @@ Internal services, databases, and inter-service communication:
 - Synapse Postgres
 - Authentik Postgres
 
-NGINX has backend network aliases for all three domains, preventing internal services from routing through Cloudflare.
+NGINX has backend network aliases for all three domains, allowing internal services (e.g. Synapse OIDC discovery) to resolve domain names to NGINX without leaving the Docker network.
 
 ## Data Flow
 
@@ -282,10 +246,9 @@ scripts/generate.py (Jinja2 rendering)
 - **Irreversible:** once a room is encrypted it cannot be unencrypted — this is a Matrix protocol constraint
 
 ### TLS & Network Security
-- **Cloudflare Tunnel:** valid TLS at edge, encrypted outbound-only tunnel
-- **Internal TLS:** self-signed certs between tunnel and NGINX
-- **No exposed ports:** all services accessible only via NGINX reverse proxy
-- **Docker networks:** isolation between frontend and backend
+- **NGINX TLS termination:** handles HTTPS directly for all domains
+- **No exposed ports:** all backend services accessible only via NGINX reverse proxy
+- **Docker network isolation:** backend services not reachable from outside the Docker network
 
 ### Data Privacy
 - **Temporary:** system designed for decommission after event
