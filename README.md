@@ -1,9 +1,14 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="landing/static/logo-text-light.svg">
+    <img src="landing/static/logo-text-dark.svg" alt="Passing Circle" width="320">
+  </picture>
+</p>
+
 # Passing Circle
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="landing/static/logo-text-light.svg">
-  <img src="landing/static/logo-text-dark.svg" alt="Passing Circle" width="320">
-</picture>
+> [!WARNING]
+> This project is under active development and is not yet ready for use. It is being developed by [@swherdman](https://github.com/swherdman).
 
 Temporary, privacy-focused chat for events. Self-hosted Docker stack with passkey-only authentication — no passwords, no accounts to manage, no (hopefully) support overhead.
 
