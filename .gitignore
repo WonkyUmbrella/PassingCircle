@@ -28,3 +28,8 @@ docker-compose.yml
 docker-compose.dev.yml
 .playwright-mcp/
 backups/
+
+# E2E tests
+tests/e2e/.venv/
+__pycache__/
+.pytest_cache/

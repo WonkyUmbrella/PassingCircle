@@ -1,0 +1,47 @@
+graph TD
+    Users([Users])
+    Users -->|"HTTPS :443"| NGINX
+
+    subgraph backend["Backend Network"]
+        NGINX["nginx<br/><i>Reverse Proxy + TLS</i>"]
+        Landing["Landing Page<br/><i>(static files)</i>"]
+
+        NGINX --> Landing
+
+        subgraph services[" "]
+            direction LR
+            FluffyChat["fluffychat<br/><i>Chat UI</i>"]
+            Synapse["synapse<br/><i>Matrix Homeserver</i>"]
+            AuthentikServer["authentik-server<br/><i>API + Web UI</i>"]
+        end
+
+        NGINX --> FluffyChat
+        NGINX --> Synapse
+        NGINX --> AuthentikServer
+
+        FluffyChat -->|"Matrix API via NGINX"| Synapse
+        Synapse -->|"OIDC via NGINX alias"| AuthentikServer
+
+        AuthentikWorker["authentik-worker<br/><i>Background Tasks</i>"]
+
+        SynapseDB[("synapse-db<br/><i>PostgreSQL</i>")]
+        AuthentikDB[("authentik-db<br/><i>PostgreSQL</i>")]
+
+        Synapse --> SynapseDB
+        AuthentikServer --> AuthentikDB
+        AuthentikWorker --> AuthentikDB
+    end
+
+    style services fill:none,stroke:none
+
+    classDef nginx fill:#4a9,stroke:#333,color:#fff
+    classDef matrix fill:#6a6,stroke:#333,color:#fff
+    classDef auth fill:#69c,stroke:#333,color:#fff
+    classDef db fill:#c96,stroke:#333,color:#fff
+    classDef client fill:#96c,stroke:#333,color:#fff
+
+    class NGINX nginx
+    class Synapse matrix
+    class AuthentikServer,AuthentikWorker auth
+    class SynapseDB,AuthentikDB db
+    class FluffyChat client
