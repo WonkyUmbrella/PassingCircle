@@ -19,9 +19,7 @@ Passing Circle runs a full Matrix chat stack behind a single reverse proxy. The 
 
 > **Note:** Private rooms and direct messages are encrypted end-to-end by default (enforced by Synapse). Public rooms (general, announcements) are unencrypted so that late joiners can see full message history.
 
-<p align="center">
-  <video src="docs/demos/passing-circle-demo.mp4" width="600" controls></video>
-</p>
+https://github.com/user-attachments/assets/1cec1309-1ee2-483e-823e-2b10152d0a67
 
 ## Architecture
 
